@@ -1,6 +1,7 @@
 from numpy import *
 import sys;  
 
+from keras import backend as K
 from keras.models import Model
 from keras.layers import Input
 from keras.layers.merge import Multiply
@@ -19,6 +20,10 @@ def main():
     print "DeepCpf1 web tool, available at http://data.snu.ac.kr/DeepCpf1, provides entire pipeline including binary chromatin accessibility for 125 cell lines\n"    
     
     if len(sys.argv) < 3:
+	print "ERROR: Not enough arguments for DeepCpf1.py; Check the usage."
+        sys.exit()
+    elif K.backend() != "theano":
+	print "ERROR: Not using the theano backend. Check the requirements."
         sys.exit()
     
     print "Building models"
