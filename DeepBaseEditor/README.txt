@@ -56,7 +56,7 @@ For more details, please refer to CUDA, CuDNN, and Tensorflow installation guide
 
 Input1: ./ABE_Efficiency_sample.txt        # List of Target Sequence(s)
     File format:
-    Target number	34 bp target sequence (4 bp + PAM + 23 bp protospacer + 3 bp)			
+    Target number	30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)			
 	1	AACTGAAGGCTGAACAGCAGGGGTGGGAGA
 
 Input2: ./ABE_Efficiency_Weight/ # Pre-trained Weight Files
@@ -148,7 +148,7 @@ Modification for personalized runs:
     TEST_NUM_SET         = [0] # List can be expanded in case of multiple test parameters
     best_model_path_list = ['./CBE_Efficiency_Weight/']
 
-cbe_wt_sample.txt can be replaced or modified to include target sequence of interest
+CBE_Efficiency_sample.txt can be replaced or modified to include target sequence of interest
 
  
 
@@ -205,7 +205,7 @@ Run script:
 
 Modification for personalized runs:
 
-   <cbe_pattern_testcode.py>
+   <TEST_CBE_Proportion.py>
     ## System Paths ##
     path                 = './'
     parameters           = {'0': 'CBE_Proportion_sample.txt'}
