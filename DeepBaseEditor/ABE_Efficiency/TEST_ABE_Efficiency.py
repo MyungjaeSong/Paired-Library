@@ -7,8 +7,6 @@ import xlsxwriter
 import pyexcel as pe
 from random import shuffle
 
-#np.set_printoptions(threshold='nan')
-
 ##############################################################################
 
 
@@ -17,14 +15,14 @@ from random import shuffle
 ##############################################################################
 ## System Paths ##
 path                 = './'
-parameters           = {'0': 'abe_wt_sample.txt'} # Dictionary can be expanded for multiple test parameters
+parameters           = {'0': 'ABE_Efficiency_sample.txt'} # Dictionary can be expanded for multiple test parameters
 
 ## Run Parameters ##
 TEST_NUM_SET         = [0] # List can be expanded in case of multiple test parameters
-best_model_path_list = ['./abe_wt_best']
+best_model_path_list = ['./ABE_Efficiency_Weight']
 
 # Model
-length = 30
+length = 24
 
 class Deep_xCas9(object):
     def __init__(self, filter_size, filter_num, node_1 = 80, node_2 = 60, l_rate = 0.005):
@@ -111,16 +109,12 @@ def Model_Inference(sess, TEST_X, model, args, load_episode, test_data_num, test
         testvalsheet[sheet_index].write(testval_row, testval_col, 100*test_value[0])
         testval_row += 1
     
-    OUT = open("outputs/Predictions.txt", "a")
-    OUT.write("DONE")
-    OUT.close()
-    
     return
 
 
 def preprocess_seq(data):
     print("Start preprocessing the sequence done 2d")
-    length  = 30
+    length  = 24
     
     DATA_X = np.zeros((len(data),1,length,4), dtype=int)
     print(np.shape(data), len(data), length)

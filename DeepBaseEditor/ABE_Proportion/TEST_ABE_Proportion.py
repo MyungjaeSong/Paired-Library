@@ -7,8 +7,6 @@ import xlsxwriter
 import pyexcel as pe
 from random import shuffle
 
-#np.set_printoptions(threshold='nan')
-
 ##############################################################################
 
 
@@ -17,15 +15,15 @@ from random import shuffle
 ##############################################################################
 ## System Paths ##
 path                 = './'
-parameters           = {'0': 'abe_pattern_sample.txt'} # Dictionary can be expanded for multiple test parameters
+parameters           = {'0': 'ABE_Proportion_sample.txt'} # Dictionary can be expanded for multiple test parameters
 
 ## Run Parameters ##
 TEST_NUM_SET         = [0] # List can be expanded in case of multiple test parameters
-best_model_path_list = ['./abe_pattern_best']
+best_model_path_list = ['./ABE_Proportion_Weight']
 
 # Model
-length = 30
-window_start = 6
+length = 26
+window_start = 5
 window_size = 8
 
 class Deep_xCas9(object):
@@ -79,13 +77,6 @@ class Deep_xCas9(object):
             L_fcl1       = tf.nn.relu(L_fcl1_pre)
             L_fcl1_drop  = tf.layers.dropout(L_fcl1, 0.3, self.is_training)
         
-        with tf.variable_scope('Fully_Connected_Layer2'):
-            W_fcl2       = tf.get_variable("W_fcl2", shape=[node_1, node_2])
-            B_fcl2       = tf.get_variable("B_fcl2", shape=[node_2])
-            L_fcl2_pre   = tf.nn.bias_add(tf.matmul(L_fcl1_drop, W_fcl2), B_fcl2)
-            L_fcl2       = tf.nn.relu(L_fcl2_pre)
-            L_fcl2_drop  = tf.layers.dropout(L_fcl2, 0.3, self.is_training)
-        
         with tf.variable_scope('Output_Layer'):
             W_out        = tf.get_variable("W_out", shape=[node_1, 2**window_size-1])#, initializer=tf.contrib.layers.xavier_initializer())
             B_out        = tf.get_variable("B_out", shape=[2**window_size-1])#, initializer=tf.contrib.layers.xavier_initializer())
@@ -113,6 +104,11 @@ def Model_Inference(sess, TEST_X, TEST_Label, model, args, load_episode, test_da
     testval_col = 3
     sheet_index = 0
     
+    sum = 0
+    for test_index in range(len(TEST_Z)):
+        sum += TEST_Z[test_index][TEST_Label[test_index]]
+    TEST_Z /= sum
+    
     for test_index in range(len(TEST_Z)):
         test_value = TEST_Z[test_index][TEST_Label[test_index]]
         testvalsheet[sheet_index].write(testval_row, testval_col, test_value)
@@ -123,7 +119,7 @@ def Model_Inference(sess, TEST_X, TEST_Label, model, args, load_episode, test_da
 # One hot encoding for DNA Sequence
 def preprocess_seq(data):
     print("Start preprocessing the sequence done 2d")
-    length  = 30
+    length  = 26
     
     DATA_X = np.zeros((len(data),1,length,4), dtype=int)
     print(np.shape(data), len(data), length)
@@ -149,7 +145,7 @@ def preprocess_seq(data):
 #def end: preprocess_seq
 
 def inference_index(orig_seq, req_seq):
-    window_start = 6
+    window_start = 5
     window_size = 8
     index = []
     for seq_index in range(len(list(req_seq))):
@@ -166,7 +162,7 @@ def inference_index(orig_seq, req_seq):
     return index
 
 def req_seq_produce(seq):
-    window_start = 6
+    window_start = 5
     window_size = 8
     req_seq = []
     full_seq = []

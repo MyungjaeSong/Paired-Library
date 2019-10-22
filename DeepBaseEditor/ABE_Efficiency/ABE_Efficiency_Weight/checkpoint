@@ -1,2 +1,2 @@
-model_checkpoint_path: "PreTrain-Final-3-3-3-60-60-60-0.001-1441-500-100"
-all_model_checkpoint_paths: "PreTrain-Final-3-3-3-60-60-60-0.001-1441-500-100"
+model_checkpoint_path: "PreTrain-Final-3-3-3-50-50-50-0.001-1490-500-200"
+all_model_checkpoint_paths: "PreTrain-Final-3-3-3-50-50-50-0.001-1490-500-200"
