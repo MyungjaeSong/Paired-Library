@@ -7,3 +7,4 @@ dependencies:
   - scipy=1.1.0
   - numpy=1.14.5
   - tensorflow=1.4.1
+  - pytest=4.6.2
