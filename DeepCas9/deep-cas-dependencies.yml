@@ -1,0 +1,9 @@
+name: deepcas
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=2.7
+  - scipy=1.1.0
+  - numpy=1.14.5
+  - tensorflow=1.4.1
