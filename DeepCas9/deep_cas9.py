@@ -77,7 +77,50 @@ class DeepCas9(object):
         return out_layer
 
 
-# class end: DeepCas9
+def process(target_sequences_files_list, model_dir_list, output_prefix):
+    np.set_printoptions(threshold='nan')
+
+    model_name_list = get_model_names(model_dir_list)
+
+    # TensorFlow config
+    conf = tf.ConfigProto()
+    conf.gpu_options.allow_growth = True
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    best_model_cv = 0.0
+
+    test_x, test_x_nohot = load_inputs(target_sequences_files_list)
+
+    for model_path, model_name in zip(model_dir_list, model_name_list):
+        l_rate, filter_num, filter_size, if3d, load_episode, node_1, node_2 = get_args_from_model_name(model_name)
+        tf.reset_default_graph()
+
+        with tf.Session(config=conf) as sess:
+            sess.run(tf.global_variables_initializer())
+            model = DeepCas9(filter_size, filter_num, node_1, node_2, l_rate)
+
+            saver = tf.train.Saver()
+            saver.restore(sess, model_path + '/' + model_name)
+
+            OUT = open("{}_{}.txt".format(output_prefix, model_path.split('/')[-1]), "a")
+            OUT.write("#{}".format(model_name))
+            OUT.write("\n")
+
+            for i in range(len(target_sequences_files_list)):
+                print ("TEST_NUM : {}".format(i))
+                OUT.write("\n")
+                OUT.write("#TEST_FILE : {}".format(target_sequences_files_list[i]))
+                OUT.write("\n")
+                predictions = model_final_test(sess, test_x[i], filter_size, filter_num, if3d, model, l_rate, load_episode,
+                                 model_path, OUT)
+                for sequence, indel_frequency_prediction in zip(test_x_nohot[i], predictions):
+                    OUT.write('{}\t{}\n'.format(sequence, indel_frequency_prediction))
+
+                # OUT.write("Testing final \n {} ".format('\n'.join(TEST_Z.reshape([np.shape(TEST_Z)[0]]))))
+                OUT.write("\n")
+            # loop end: i
+            OUT.write("\n")
+            OUT.close()
+
 
 def model_final_test(sess, TEST_X, filter_size, filter_num, if3d, model, l_rate, load_episode, best_model_path, OUT):
     test_batch = 500
@@ -89,12 +132,9 @@ def model_final_test(sess, TEST_X, filter_size, filter_num, if3d, model, l_rate,
         Dict = {model.inputs: TEST_X[i * test_batch:(i + 1) * test_batch], model.is_training: False}
         TEST_Z[i * test_batch:(i + 1) * test_batch] = sess.run([model.outputs], feed_dict=Dict)[0]
 
-    OUT.write("Testing final \n {} ".format(tuple(TEST_Z.reshape([np.shape(TEST_Z)[0]]))))
-    OUT.write("\n")
-    return
+    reshaped_results = TEST_Z.reshape([np.shape(TEST_Z)[0]])
 
-
-# def end: Model_Finaltest
+    return [x for x in reshaped_results]
 
 
 def preprocess_seq(data):
@@ -130,9 +170,6 @@ def preprocess_seq(data):
     return data_x
 
 
-# def end: preprocess_seq
-
-
 def load_sequences(path):
     FILE = open(path, "r")
     data = FILE.readlines()
@@ -152,67 +189,14 @@ def load_sequences(path):
     return processed_full_seq, seq
 
 
-# def end: getseq
-
-
-def main(argv):
-    parser = argparse.ArgumentParser(description='Predict indel frequency from sequence using trained DeepCas9 model')
-    parser.add_argument('target_sequences_paths',
-                        help='comma separated list of target dataset paths, each tsv file contains table of '
-                             'Target Number <TAB> 30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)')
-    parser.add_argument('model_dir_paths',
-                        help='comma separated list of trained model parameters folder')
-    parser.add_argument('output_prefix',
-                        help='prefix to output prediction files, will write output per model')
-
-    args = parser.parse_args(argv)
-    process(args)
-
-def process(args):
-    np.set_printoptions(threshold='nan')
-
-    target_sequences_files_list = args.target_sequences_paths.split(',')
-    model_dir_list = args.model_dir_paths.split(',')
-    model_name_list = get_model_names(model_dir_list)
-
-    # TensorFlow config
-    conf = tf.ConfigProto()
-    conf.gpu_options.allow_growth = True
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    best_model_cv = 0.0
-
+def load_inputs(target_sequences_files_list):
     test_x = []
     test_x_nohot = []
     for target_sequences_path in target_sequences_files_list:
         tmp_x, tmp_x_nohot = load_sequences(target_sequences_path)
         test_x.append(tmp_x)
         test_x_nohot.append(tmp_x_nohot)
-
-    for model_path, model_name in zip(model_dir_list, model_name_list):
-        l_rate, filter_num, filter_size, if3d, load_episode, node_1, node_2 = get_args_from_model_name(model_name)
-        tf.reset_default_graph()
-
-        with tf.Session(config=conf) as sess:
-            sess.run(tf.global_variables_initializer())
-            model = DeepCas9(filter_size, filter_num, node_1, node_2, l_rate)
-
-            saver = tf.train.Saver()
-            saver.restore(sess, model_path + '/' + model_name)
-
-            OUT = open("{}_{}.txt".format(args.output_prefix, model_path.split('/')[-1]), "a")
-            OUT.write("{}".format(model_name))
-            OUT.write("\n")
-
-            for i in range(len(target_sequences_files_list)):
-                print ("TEST_NUM : {}".format(i))
-                OUT.write("\n")
-                OUT.write("TEST_FILE : {}".format(target_sequences_files_list[i]))
-                OUT.write("\n")
-                model_final_test(sess, test_x[i], filter_size, filter_num, if3d, model, l_rate, load_episode,
-                                 model_path, OUT)
-            # loop end: i
-            OUT.write("\n")
-            OUT.close()
+    return test_x, test_x_nohot
 
 
 def get_args_from_model_name(model_name):
@@ -255,6 +239,24 @@ def get_model_names(model_dir_list):
             if "meta" in model_meta_file_name:
                 model_name_list.append(model_meta_file_name[:-5])
     return model_name_list
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description='Predict indel frequency from sequence using trained DeepCas9 model')
+    parser.add_argument('target_sequences_paths',
+                        help='comma separated list of target dataset paths, each tsv file contains table of '
+                             'Target Number <TAB> 30 bp target sequence (4 bp + 20 bp protospacer + PAM + 3 bp)')
+    parser.add_argument('model_dir_paths',
+                        help='comma separated list of trained model parameters folder')
+    parser.add_argument('output_prefix',
+                        help='prefix to output prediction files, will write output per model')
+
+    args = parser.parse_args(argv)
+
+    target_sequences_files_list = args.target_sequences_paths.split(',')
+    model_dir_list = args.model_dir_paths.split(',')
+
+    process(target_sequences_files_list, model_dir_list, args.output_prefix)
 
 
 if __name__ == '__main__':
