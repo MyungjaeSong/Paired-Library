@@ -3,7 +3,7 @@ import os
 import unittest
 from os.path import dirname
 
-import DeepCas9.deep_cas9
+import DeepCas9.DeepCas9_TestCode
 from DeepCas9.test import test_utils
 
 root_dir = dirname(dirname(__file__))
@@ -21,8 +21,8 @@ class TestDeepCas9(unittest.TestCase):
             os.remove(actual_output)
         if not os.path.exists(test_out_dir):
             os.makedirs(test_out_dir)
-        DeepCas9.deep_cas9.process(['{}/test/resources/training_sequences_head.txt'.format(root_dir)],
-                                   ['{}/DeepCas9_Final'.format(root_dir)],
+        DeepCas9.DeepCas9_TestCode.process(['{}/test/resources/training_sequences_head.txt'.format(root_dir)],
+                                           ['{}/DeepCas9_Final'.format(root_dir)],
                                    '{}/test_outputs/predictions'.format(root_dir))
 
         test_utils.assert_file_content_equals(self, actual_output, expected_output, ignore_pattern="^#")
