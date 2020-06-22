@@ -112,12 +112,11 @@ def process(target_sequences_files_list, model_dir_list, output_prefix):
                 OUT.write("\n")
                 predictions = model_final_test(sess, test_x[i], filter_size, filter_num, if3d, model, l_rate, load_episode,
                                  model_path, OUT)
+                index = 1
                 for sequence, indel_frequency_prediction in zip(test_x_nohot[i], predictions):
-                    OUT.write('{}\t{}\n'.format(sequence, indel_frequency_prediction))
+                    OUT.write('{}\t{}\t{}\n'.format(index, sequence, indel_frequency_prediction))
+                    index += 1
 
-                # OUT.write("Testing final \n {} ".format('\n'.join(TEST_Z.reshape([np.shape(TEST_Z)[0]]))))
-                OUT.write("\n")
-            # loop end: i
             OUT.write("\n")
             OUT.close()
 
