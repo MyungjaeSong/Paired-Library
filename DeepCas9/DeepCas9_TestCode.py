@@ -159,9 +159,9 @@ def preprocess_seq(data):
             elif data[l][i] in "Tt":
                 data_x[l, 0, i, 3] = 1
             else:
-                print "Non-ATGC character " + data[l]
-                print i
-                print data[l][i]
+                print("Non-ATGC character " + data[l])
+                print(i)
+                print(data[l][i])
                 sys.exit()
         # loop end: i
     # loop end: l
@@ -180,7 +180,7 @@ def load_sequences(path):
             data_split = data[l].split()
             seq.append(data_split[1])
         except:
-            print data[l]
+            print(data[l])
             seq.append(data[l])
     # loop end: l
     FILE.close()
