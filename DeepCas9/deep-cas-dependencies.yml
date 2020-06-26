@@ -3,8 +3,10 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - python=2.7
+  - python=3.7
   - scipy=1.1.0
   - numpy=1.14.5
-  - tensorflow=1.4.1
+  - tensorflow=2.2.0
   - pytest=4.6.2
+  - pandas=1.0.3
+  - seaborn=0.10.1
