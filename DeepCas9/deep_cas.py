@@ -35,14 +35,20 @@ def build_model():
         staircase=False)
 
     model = tf.keras.models.Sequential([
-        keras.layers.Conv1D(32, 3, activation='relu', input_shape=(30, 4)),
+        # filter each consecutive 4bp (4X4 matrix)
+        keras.layers.Conv1D(30, 7, activation='relu', input_shape=(30, 4)),
+        # Downsamples the input representation by taking the maximum value over the window defined by pool_size
+        # for each dimension along the features axis
+        keras.layers.MaxPool1D(2),
+        keras.layers.Conv1D(30, 4, activation='relu'),
+        keras.layers.MaxPool1D(2),
         keras.layers.Flatten(),
-        keras.layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
-        keras.layers.Dropout(0.2),
         keras.layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
         keras.layers.Dropout(0.2),
         keras.layers.Dense(1, activation='relu')
     ])
+
+    model.summary()
     # compile loss function into model
     model.compile(optimizer=keras.optimizers.RMSprop(0.001),
                   loss='mse',
