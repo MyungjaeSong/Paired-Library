@@ -20,14 +20,17 @@ def build_model():
 
     model = tf.keras.models.Sequential([
         # Apply filter each consecutive 7bp (7X4 matrix)
-        keras.layers.Conv2D(100, (7,4), activation='relu', input_shape=(30, 4, 1), padding='same'),
+        keras.layers.Conv2D(50, (7,4), activation='relu', input_shape=(30, 4, 1), padding='same',
+                            kernel_regularizer=regularizers.l2(0.001)),
         # Downsamples the input representation by taking the maximum value over the window defined by pool_size
         # for each dimension along the features axis
         keras.layers.MaxPooling2D((2,1)),
+        #keras.layers.Conv2D(50, (5, 4), activation='relu', padding='same',
+        #                    kernel_regularizer=regularizers.l1(0.001)),
+        #keras.layers.MaxPooling2D((2, 1)),
         keras.layers.Flatten(),
         keras.layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
-        keras.layers.Dropout(0.3),
-
+        keras.layers.Dropout(0.2),
         keras.layers.Dense(1, activation='relu')
     ])
 
@@ -126,6 +129,8 @@ def main():
     # Calculate pearson correlation
     predicted_arr = np.asarray(predicted)
     print(f'pearson correlation: {scipy.stats.pearsonr(predicted_arr, actual)}')
+    #print(f'pearson correlation: {tfp.stats.correlation(predicted_arr, actual)}')
+
 
     visualize_history(history)
 
