@@ -6,7 +6,7 @@ import scipy.stats
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.keras import regularizers
-
+import tensorflow_probability as tfp
 from DeepCas9.utils import *
 
 
@@ -35,16 +35,18 @@ def build_model():
         staircase=False)
 
     model = tf.keras.models.Sequential([
-        # filter each consecutive 4bp (4X4 matrix)
-        keras.layers.Conv1D(30, 7, activation='relu', input_shape=(30, 4)),
+        # Apply filter each consecutive 4bp (4X4 matrix)
+        keras.layers.Conv2D(100, (3,4), activation='relu', input_shape=(30, 4, 1)),
         # Downsamples the input representation by taking the maximum value over the window defined by pool_size
         # for each dimension along the features axis
-        keras.layers.MaxPool1D(2),
-        keras.layers.Conv1D(30, 4, activation='relu'),
-        keras.layers.MaxPool1D(2),
+        keras.layers.MaxPooling2D((2,1)),
+        keras.layers.Conv2D(70, (3, 1), activation='relu'),
+        keras.layers.MaxPool2D((2,1)),
         keras.layers.Flatten(),
-        keras.layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
-        keras.layers.Dropout(0.2),
+        keras.layers.Dense(80, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(60, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
+        keras.layers.Dropout(0.3),
         keras.layers.Dense(1, activation='relu')
     ])
 
@@ -52,7 +54,9 @@ def build_model():
     # compile loss function into model
     model.compile(optimizer=keras.optimizers.RMSprop(0.001),
                   loss='mse',
-                  metrics=['mae', 'mse'])
+                  metrics=[keras.metrics.MeanAbsoluteError(name='mae'),
+                           tfp.stats.correlation
+                           ])
     return model
 
 
@@ -69,6 +73,7 @@ def main():
 
     training_file = dirname(__file__) + '/dataset/training.tsv'
     training_input_df = pd.read_csv(training_file, sep='\t')
+    training_input_df.sample(frac=1) # shuffle the data
 
     n_train_and_validation = training_input_df.shape[0]
     n_validation = int(n_train_and_validation / 10)
@@ -85,7 +90,7 @@ def main():
 
     indel_frequencies = training_input_df[frequency_column].to_numpy()
     #plt.hist(indel_frequencies, 30); plt.show()
-
+    onehot_encoded_sequences_3d_matrix = np.expand_dims(onehot_encoded_sequences_3d_matrix, axis=3)
     print(onehot_encoded_sequences_3d_matrix.shape)
     print(indel_frequencies.shape)
     train_and_validation_dataset = tf.data.Dataset.from_tensor_slices(
@@ -93,14 +98,14 @@ def main():
 
     train_and_validation_dataset.shuffle(BUFFER_SIZE)
 
-    index = 0
-    for x, y in train_and_validation_dataset:
-        print(index)
-        index += 1
-        print(x)
-        print(y)
-        if index > 0:
-            break
+    # index = 0
+    # for x, y in train_and_validation_dataset:
+    #     print(index)
+    #     index += 1
+    #     print(x)
+    #     print(y)
+    #     if index > 0:
+    #         break
 
     train_and_validation_dataset.shuffle(BUFFER_SIZE)
     validate_ds = train_and_validation_dataset.take(n_validation)
@@ -110,14 +115,15 @@ def main():
     model = build_model()
 
     history = model.fit(
-        onehot_encoded_sequences_3d_matrix,
-        indel_frequencies,
+        onehot_encoded_sequences_3d_matrix[2000:],
+        indel_frequencies[2000:],
         epochs=EPOCHS,
-        validation_split=0.1, verbose=1)
+        validation_data=(onehot_encoded_sequences_3d_matrix[:2000], indel_frequencies[:2000]),
+        verbose=1)
 
     # predict a subset of the training set (sanity)
-    predicted = [x[0] for x in model.predict(onehot_encoded_sequences_3d_matrix[-1000:])]
-    actual = indel_frequencies[-1000:]
+    predicted = [x[0] for x in model.predict(onehot_encoded_sequences_3d_matrix[:2000])]
+    actual = indel_frequencies[:2000]
 
     # Calculate pearson correlation
     predicted_arr = np.asarray(predicted)
