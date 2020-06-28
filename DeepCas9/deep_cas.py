@@ -10,6 +10,37 @@ import tensorflow_probability as tfp
 from DeepCas9.utils import *
 
 
+
+def build_model():
+    lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
+        0.001,
+        decay_steps=1000,
+        decay_rate=1,
+        staircase=False)
+
+    model = tf.keras.models.Sequential([
+        # Apply filter each consecutive 7bp (7X4 matrix)
+        keras.layers.Conv2D(100, (7,4), activation='relu', input_shape=(30, 4, 1), padding='same'),
+        # Downsamples the input representation by taking the maximum value over the window defined by pool_size
+        # for each dimension along the features axis
+        keras.layers.MaxPooling2D((2,1)),
+        keras.layers.Flatten(),
+        keras.layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
+        keras.layers.Dropout(0.3),
+
+        keras.layers.Dense(1, activation='relu')
+    ])
+
+    model.summary()
+    # compile loss function into model
+    model.compile(optimizer=keras.optimizers.RMSprop(0.001),
+                  loss='mse',
+                  metrics=[keras.metrics.MeanAbsoluteError(name='mae'),
+                           tfp.stats.correlation
+                           ])
+    return model
+
+
 def sequence_to_one_hot(sequence):
     length = 30
     one_hot_encoded_sequence = np.zeros((length, 4), dtype=int)
@@ -25,39 +56,6 @@ def sequence_to_one_hot(sequence):
         else:
             raise RuntimeError("Non-ATGC character " + sequence)
     return one_hot_encoded_sequence
-
-
-def build_model():
-    lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
-        0.001,
-        decay_steps=1000,
-        decay_rate=1,
-        staircase=False)
-
-    model = tf.keras.models.Sequential([
-        # Apply filter each consecutive 4bp (4X4 matrix)
-        keras.layers.Conv2D(100, (3,4), activation='relu', input_shape=(30, 4, 1)),
-        # Downsamples the input representation by taking the maximum value over the window defined by pool_size
-        # for each dimension along the features axis
-        keras.layers.MaxPooling2D((2,1)),
-        keras.layers.Conv2D(70, (3, 1), activation='relu'),
-        keras.layers.MaxPool2D((2,1)),
-        keras.layers.Flatten(),
-        keras.layers.Dense(80, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
-        keras.layers.Dropout(0.3),
-        keras.layers.Dense(60, activation='relu', kernel_regularizer=regularizers.l1(0.001)),
-        keras.layers.Dropout(0.3),
-        keras.layers.Dense(1, activation='relu')
-    ])
-
-    model.summary()
-    # compile loss function into model
-    model.compile(optimizer=keras.optimizers.RMSprop(0.001),
-                  loss='mse',
-                  metrics=[keras.metrics.MeanAbsoluteError(name='mae'),
-                           tfp.stats.correlation
-                           ])
-    return model
 
 
 def pack_row(*row):
