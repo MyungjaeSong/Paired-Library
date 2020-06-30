@@ -4,9 +4,10 @@ channels:
   - conda-forge
 dependencies:
   - python=3.7
-  - scipy=1.1.0
-  - numpy=1.14.5
   - tensorflow=2.2.0
+  - pandas=1.0.5
+  - scipy=1.5.0
+  - numpy
   - pytest=4.6.2
-  - pandas=1.0.3
   - seaborn=0.10.1
+  - nomkl
