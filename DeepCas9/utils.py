@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def visualize_history(history):
-    training_corr = history.history['correlation']
-    validation_corr = history.history['val_correlation']
+    training_corr = history.history['mae']
+    validation_corr = history.history['val_mae']
 
     # Create count of the number of epochs
     epoch_count = range(1, len(training_corr) + 1)
@@ -11,9 +12,9 @@ def visualize_history(history):
     # Visualize loss history
     plt.plot(epoch_count, training_corr, 'r--')
     plt.plot(epoch_count, validation_corr, 'b-')
-    plt.legend(['Training Corr', 'Validation Corr'])
+    plt.legend(['Training MAE', 'Validation MAE'])
     plt.xlabel('Epoch')
-    plt.ylabel('Correlation')
+    plt.ylabel('Mean absolute error')
     plt.show()
 
 

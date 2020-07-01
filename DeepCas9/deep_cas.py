@@ -3,10 +3,10 @@ import sys
 from os.path import dirname
 import pandas as pd
 import scipy.stats
+import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.keras import regularizers
-import tensorflow_probability as tfp
 from DeepCas9.utils import *
 
 # BUFFER_SIZE = int(1e4)
@@ -24,7 +24,7 @@ def parse_args(argv):
     parser.add_argument('-model_file', default=dirname(__file__) + '/model')
     parser.add_argument('--do_training', action='store_true', default=False,
                         help='train the model from training data (otherwise load trained model from -model_file)')
-    parser.add_argument('-epochs', type=int, default=20)
+    parser.add_argument('-epochs', type=int, default=40)
     parser.add_argument('-validation_frac', type=float, default=0.1,
                         help='fraction of training set to leave for validation')
     parser.add_argument('-filter_size', type=int, default=7,
@@ -37,12 +37,6 @@ def parse_args(argv):
 
 
 def build_model(filter_size, num_of_filters, num_of_dense_layer_neurons, dropout_rate):
-    lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
-        0.001,
-        decay_steps=1000,
-        decay_rate=1,
-        staircase=False)
-
     model = tf.keras.models.Sequential([
         # Apply filter each consecutive 7bp (7X4 matrix)
         keras.layers.Conv2D(num_of_filters, (filter_size, 4), activation='relu', input_shape=(30, 4, 1), padding='same',
@@ -63,9 +57,7 @@ def build_model(filter_size, num_of_filters, num_of_dense_layer_neurons, dropout
     # compile loss function into model
     model.compile(optimizer=keras.optimizers.RMSprop(0.001),
                   loss='mse',
-                  metrics=[keras.metrics.MeanAbsoluteError(name='mae'),
-                           tfp.stats.correlation
-                           ])
+                  metrics=[keras.metrics.MeanAbsoluteError(name='mae')])
     return model
 
 
@@ -104,17 +96,30 @@ def train_model(training_file, validation_fraction, filter_size, num_of_filters,
     training_input_df.sample(frac=1)
     n_train_and_validation = training_input_df.shape[0]
     validation_set_size = int(n_train_and_validation * validation_fraction)
-    training_set_size = n_train_and_validation - validation_set_size
     # plt.hist(indel_frequencies, 30); plt.show()
     # Build the model
     model = build_model(filter_size, num_of_filters, num_of_dense_layer_neurons, dropout)
+
+    lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
+        initial_learning_rate=0.002,
+        decay_steps=10,
+        decay_rate=0.8,
+        staircase=False)
+
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0.1, patience=5, verbose=1, mode='auto',
+        baseline=None, restore_best_weights=True
+    )
+
+    lr_scheduale_callback = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
     # train the model
     history = model.fit(
         onehot_encoded_sequences_3d_matrix[validation_set_size:],
         indel_frequencies[validation_set_size:],
         epochs=epochs,
-        validation_data=(
-        onehot_encoded_sequences_3d_matrix[:validation_set_size], indel_frequencies[:validation_set_size]),
+        validation_data=(onehot_encoded_sequences_3d_matrix[:validation_set_size],
+                         indel_frequencies[:validation_set_size]),
+        callbacks=[lr_scheduale_callback, early_stopping],
         verbose=1)
     # predict a subset of the training set (sanity)
     predicted = [x[0] for x in model.predict(onehot_encoded_sequences_3d_matrix[:validation_set_size])]
@@ -122,16 +127,22 @@ def train_model(training_file, validation_fraction, filter_size, num_of_filters,
     # Calculate pearson correlation
     predicted_arr = np.asarray(predicted)
     print(f'pearson correlation: {scipy.stats.pearsonr(predicted_arr, actual)}')
-    # print(f'pearson correlation: {tfp.stats.correlation(predicted_arr, actual)}')
+
     visualize_history(history)
     return model
 
 
 def test_model(trained_model, test_data_file):
-    testing_input_df = pd.read_csv(test_data_file, sep='\t', skiprows=1, columns=[sequence_column, frequency_column], usecols=[0, 1])
+    testing_input_df = pd.read_csv(test_data_file, sep='\t', skiprows=1, names=[sequence_column, frequency_column], usecols=[0, 1])
     one_hot_encoded_sequences_3d_matrix = series_to_onehot_encoding_3d_matrix(testing_input_df[sequence_column])
-    predictions = trained_model(one_hot_encoded_sequences_3d_matrix)
-    print(predictions)
+    actual_indel_frequency = testing_input_df[frequency_column]
+    predicted_indel_frequencies_tensor = trained_model(one_hot_encoded_sequences_3d_matrix)
+    predicted_indel_frequencies = tf.make_ndarray(tf.make_tensor_proto(predicted_indel_frequencies_tensor)).flatten()
+    print(scipy.stats.pearsonr(predicted_indel_frequencies, actual_indel_frequency))
+    plt.scatter(predicted_indel_frequencies, actual_indel_frequency)
+    plt.show()
+
+
 
 
 def series_to_onehot_encoding_3d_matrix(sequences_series):
