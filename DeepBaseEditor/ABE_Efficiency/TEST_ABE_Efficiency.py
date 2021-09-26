@@ -22,7 +22,7 @@ TEST_NUM_SET         = [0] # List can be expanded in case of multiple test param
 best_model_path_list = ['./ABE_Efficiency_Weight']
 
 # Model
-length = 24
+length = 25
 
 class Deep_xCas9(object):
     def __init__(self, filter_size, filter_num, node_1 = 80, node_2 = 60, l_rate = 0.005):
@@ -71,18 +71,11 @@ class Deep_xCas9(object):
             L_fcl1_pre   = tf.nn.bias_add(tf.matmul(L_flatten_0, W_fcl1), B_fcl1)
             L_fcl1       = tf.nn.relu(L_fcl1_pre)
             L_fcl1_drop  = tf.layers.dropout(L_fcl1, 0.3, self.is_training)
-        
-        with tf.variable_scope('Fully_Connected_Layer2'):
-            W_fcl2       = tf.get_variable("W_fcl2", shape=[node_1, node_2])
-            B_fcl2       = tf.get_variable("B_fcl2", shape=[node_2])
-            L_fcl2_pre   = tf.nn.bias_add(tf.matmul(L_fcl1_drop, W_fcl2), B_fcl2)
-            L_fcl2       = tf.nn.relu(L_fcl2_pre)
-            L_fcl2_drop  = tf.layers.dropout(L_fcl2, 0.3, self.is_training)
             
         with tf.variable_scope('Output_Layer'):
-            W_out        = tf.get_variable("W_out", shape=[node_2, 1])#, initializer=tf.contrib.layers.xavier_initializer())
-            B_out        = tf.get_variable("B_out", shape=[1])#, initializer=tf.contrib.layers.xavier_initializer())
-            self.outputs = tf.nn.bias_add(tf.matmul(L_fcl2_drop, W_out), B_out)
+            W_out        = tf.get_variable("W_out", shape=[node_1, 1])
+            B_out        = tf.get_variable("B_out", shape=[1])
+            self.outputs = tf.nn.bias_add(tf.matmul(L_fcl1_drop, W_out), B_out)
 
         # Define loss function and optimizer
         self.obj_loss    = tf.reduce_mean(tf.square(self.targets - self.outputs))
