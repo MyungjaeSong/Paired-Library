@@ -1,0 +1,10 @@
+name: deepcas
+channels:
+  - anaconda
+dependencies:
+  - tensorflow=2.2
+  - pandas
+  - scipy
+  - numpy
+  - pytest
+  - seaborn
